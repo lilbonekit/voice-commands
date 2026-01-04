@@ -9,6 +9,11 @@ SPIDER_MAN_VIDEO_URL = "https://www.youtube.com/watch?v=OBpXq0XVyCw"
 # TODO: Replace with actual Supernatural URL
 SUPERNATURAL_VIDEO_URL = SPIDER_MAN_VIDEO_URL
 
+VNATURE_VIDEO_URL = "https://www.youtube.com/watch?v=zz9euLMWsfA&list=RDzz9euLMWsfA&start_radio=1"
+
+def open_vnature():
+    open_url(VNATURE_VIDEO_URL)
+
 def open_english():
     open_url(ENGLISH_VIDEO_URL)
 
@@ -47,4 +52,5 @@ AVAILABLE_ACTIONS = {
     "open_spiderman": open_spiderman,
     "shutdown_computer": shutdown_computer,
     "open_supernatural": open_supernatural,
+    "open_vnature": open_vnature,
 } 

@@ -29,7 +29,19 @@ COMMANDS = {
                 "хочу посмотреть сверхъестественное",
             ],
         },
+        "open_vnature": {
+            "text": "🔥 Включаю Внатуре",
+            "voice": "Включаю внатуре",
+            "triggers": [
+                "включи внатуре",
+                "включи в натуре",
+                "запусти внатуре",
+                "запусти в натуре",
+                "врубай внатуре",
+            ],
+        },
     },
+
     "en": {
         "open_english": {
             "text": "📚 Opening English lesson",
@@ -46,9 +58,7 @@ COMMANDS = {
             "triggers": [
                 "play spider man",
                 "play spiderman",
-                "play spiderman",
                 "open spiderman",
-                "start spiderman",
                 "start spiderman",
             ],
         },
@@ -59,6 +69,14 @@ COMMANDS = {
                 "open supernatural",
                 "play supernatural",
                 "start supernatural series",
+            ],
+        },
+        "open_vnature": {
+            "text": "🔥 Opening Vnature",
+            "voice": "Opening vnature",
+            "triggers": [
+                "play vnature",
+                "open vnature",
             ],
         },
     },

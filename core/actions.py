@@ -16,7 +16,12 @@ def shutdown_computer():
     system = platform.system()
 
     if system == "Darwin":  # macOS
-        os.system("sudo shutdown -h now")
+        # os.system("sudo shutdown -h now")
+      subprocess.run([
+          "osascript",
+          "-e",
+          'tell application "System Events" to shut down'
+      ])
     elif system == "Linux":
         os.system("shutdown -h now")
     elif system == "Windows":

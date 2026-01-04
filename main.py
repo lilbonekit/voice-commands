@@ -1,4 +1,5 @@
 import threading
+from time import sleep
 import sounddevice as sd
 
 from core.recognizer import VoiceRecognizer
@@ -83,6 +84,7 @@ def callback(indata, frames, time, status):
     if shutdown_confirmation:
         if intent == "confirm_yes":
             say("shutdown_confirmed")
+            sleep(1_000)  # wait for TTS to finish
             AVAILABLE_ACTIONS["shutdown_computer"]()
             exit_event.set()
             return
@@ -105,7 +107,6 @@ def callback(indata, frames, time, status):
 
 
 # ---------- ENTRYPOINT ----------
-
 startup_text = get_message(recognizer.current_language, "startup", "text")
 startup_voice = get_message(recognizer.current_language, "startup", "voice")
 listening_text = get_message(recognizer.current_language, "listening", "text")

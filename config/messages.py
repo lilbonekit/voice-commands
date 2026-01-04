@@ -36,6 +36,18 @@ MESSAGES = {
             "text": "👍 Окей, компьютер остаётся включён",
             "voice": "Хорошо, компьютер остаётся включён",
         },
+         "shutdown_timer_ask_minutes": {
+            "text": "⏱ На сколько минут поставить таймер отключения?",
+            "voice": "На сколько минут поставить таймер отключения?"
+        },
+        "shutdown_timer_bad_minutes": {
+            "text": "❌ Не понял количество минут. Скажите число, например: 15.",
+            "voice": "Не понял количество минут. Скажите число, например пятнадцать."
+        },
+        "shutdown_timer_cancelled": {
+            "text": "❎ Таймер отключения отменён.",
+            "voice": "Таймер отключения отменён."
+        },
     },
 
     "en": {
@@ -74,6 +86,18 @@ MESSAGES = {
         "shutdown_cancelled": {
             "text": "👍 Okay, cancelling shutdown",
             "voice": "Okay, cancelling shutdown",
+        },
+         "shutdown_timer_ask_minutes": {
+            "text": "⏱ How many minutes should I set the shutdown timer?",
+            "voice": "How many minutes should I set the shutdown timer?"
+        },
+        "shutdown_timer_bad_minutes": {
+            "text": "❌ I didn't understand the number of minutes. Please say a number.",
+            "voice": "I didn't understand the number of minutes. Please say a number."
+        },
+        "shutdown_timer_cancelled": {
+            "text": "❎ Shutdown timer cancelled.",
+            "voice": "Shutdown timer cancelled."
         },
     }
 }

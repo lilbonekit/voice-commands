@@ -44,6 +44,7 @@ COMMANDS = {
             "text": "🕷️ Opening Spider-Man",
             "voice": "Opening Spider Man",
             "triggers": [
+                "play spider man",
                 "play spiderman",
                 "play spiderman",
                 "open spiderman",

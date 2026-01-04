@@ -1,9 +1,11 @@
+import threading
 import time
 
 from config.commands import COMMANDS
 from config.languages import LANGUAGES
 from core.languages import detect_language_from_text, choose_language
 from core.intents import detect_intent
+from core.time import parse_minutes
 
 
 class VoiceProcessor:
@@ -13,18 +15,42 @@ class VoiceProcessor:
         self.speak = speak
         self.get_message = get_message
 
+        # ---------- EXIT / SHUTDOWN ----------
         self.exit_requested = False
         self.exit_confirmation = False
         self.shutdown_confirmation = False
 
-        self.is_speaking = False  
-        # Timestamp of last moment we triggered TTS. Used to ignore immediate echoes.
+        # ---------- SPEECH CONTROL ----------
+        self.is_speaking = False
         self.last_spoken_at = 0.0
-        # Seconds to ignore recognizer input after speaking (adjustable)
         self.speech_cooldown = 1.2
+
+        # ---------- SHUTDOWN TIMER ----------
+        self.shutdown_timer_waiting_minutes = False
+        self.shutdown_timer_confirmation = False
+        self.pending_shutdown_minutes: int | None = None
+        self.shutdown_timer: threading.Timer | None = None
+
+    # ---------- PUBLIC API ----------
 
     def should_exit(self) -> bool:
         return self.exit_requested
+
+    # ---------- INTERNAL HELPERS ----------
+
+    def cancel_shutdown_timer(self):
+        if self.shutdown_timer:
+            self.shutdown_timer.cancel()
+            self.shutdown_timer = None
+
+    def say_text(self, text: str):
+        print(text)
+        self.is_speaking = True
+        try:
+            self.speak(text, self.recognizer.current_language)
+        finally:
+            self.last_spoken_at = time.time()
+            self.is_speaking = False
 
     def say(self, key: str):
         text = self.get_message(self.recognizer.current_language, key, "text")
@@ -36,14 +62,15 @@ class VoiceProcessor:
         try:
             self.speak(voice, self.recognizer.current_language)
         finally:
-            # record when we spoke so we can ignore immediate microphone echo
             self.last_spoken_at = time.time()
             self.is_speaking = False
+
+    # ---------- MAIN LOGIC ----------
 
     def process_text(self, text: str):
         print(f"➡️ recognized: '{text}'")
 
-        # If we recently spoke, ignore recognizer input for a short cooldown
+        # Ignore mic echo after TTS
         if time.time() - self.last_spoken_at < self.speech_cooldown:
             print("⏱ Ignoring input during speech cooldown")
             return
@@ -51,7 +78,8 @@ class VoiceProcessor:
         intent = detect_intent(text, self.recognizer.current_language)
         print(f"🔍 Detected intent: {intent}")
 
-        # ---------- INTENTS ----------
+        # ---------- BASIC INTENTS ----------
+
         if intent == "greeting":
             self.say("greeting")
             return
@@ -59,10 +87,8 @@ class VoiceProcessor:
         if intent == "switch_language":
             target = detect_language_from_text(text)
             if not target:
-                # fallback to interactive chooser if no language detected
                 try:
-                    chosen = choose_language()
-                    target = chosen
+                    target = choose_language()
                 except Exception:
                     target = None
 
@@ -73,11 +99,12 @@ class VoiceProcessor:
                 try:
                     self.recognizer.switch_language(target)
                     print(f"🌍 Switched to {LANGUAGES[target]['label']}")
-                    # confirm in the new language
                     self.say("listening")
                 except Exception as e:
                     print("⚠️ Language switch failed:", e)
-                return
+            return
+
+        # ---------- EXIT FLOW ----------
 
         if intent == "exit":
             self.say("exit_ask")
@@ -94,6 +121,8 @@ class VoiceProcessor:
                 self.say("exit_cancelled")
                 self.exit_confirmation = False
                 return
+
+        # ---------- IMMEDIATE SHUTDOWN ----------
 
         if intent == "shutdown_computer":
             self.say("shutdown_ask")
@@ -112,6 +141,58 @@ class VoiceProcessor:
                 self.shutdown_confirmation = False
                 return
 
+        # ---------- SHUTDOWN TIMER FLOW ----------
+
+        if intent == "shutdown_timer":
+            self.pending_shutdown_minutes = None
+            self.shutdown_timer_waiting_minutes = True
+            self.shutdown_timer_confirmation = False
+
+            self.say("shutdown_timer_ask_minutes")
+            return
+
+        if self.shutdown_timer_waiting_minutes:
+            minutes = parse_minutes(text)
+            if minutes is None:
+                self.say("shutdown_timer_bad_minutes")
+                return
+
+            self.pending_shutdown_minutes = minutes
+            self.shutdown_timer_waiting_minutes = False
+            self.shutdown_timer_confirmation = True
+
+            self.say_text(
+                f"Уверены, что хотите поставить таймер на {minutes} минут?"
+            )
+            return
+
+        if self.shutdown_timer_confirmation:
+            if intent == "confirm_yes":
+                minutes = self.pending_shutdown_minutes or 0
+
+                self.cancel_shutdown_timer()
+
+                self.shutdown_timer = threading.Timer(
+                    minutes * 60,
+                    self.actions["shutdown_computer"],
+                )
+                self.shutdown_timer.daemon = True
+                self.shutdown_timer.start()
+
+                self.pending_shutdown_minutes = None
+                self.shutdown_timer_confirmation = False
+
+                self.say_text(
+                    f"Таймер на {minutes} минут запущен. Отчёт пошёл."
+                )
+                return
+
+            if intent == "confirm_no":
+                self.pending_shutdown_minutes = None
+                self.shutdown_timer_confirmation = False
+                self.say("shutdown_timer_cancelled")
+                return
+
         # ---------- COMMANDS ----------
 
         for action, cfg in COMMANDS[self.recognizer.current_language].items():
@@ -122,7 +203,6 @@ class VoiceProcessor:
                         self.speak(cfg["voice"], self.recognizer.current_language)
                         self.actions[action]()
                     finally:
-                        # mark cooldown regardless of speak() behavior
                         self.last_spoken_at = time.time()
                         self.is_speaking = False
                     return

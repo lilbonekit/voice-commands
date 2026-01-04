@@ -36,8 +36,6 @@ def callback(indata, frames, time_info, status):
     if processor.should_exit():
         exit_event.set()
 
-
-
 # ---------- ENTRYPOINT ----------
 startup_text = get_message(recognizer.current_language, "startup", "text")
 startup_voice = get_message(recognizer.current_language, "startup", "voice")

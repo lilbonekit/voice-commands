@@ -23,9 +23,12 @@ processor = VoiceProcessor(
 )
 
 def callback(indata, frames, time_info, status):
-    # Ignore input while TTS is actively running or during short cooldown
-    if processor.is_speaking or (time.time() - getattr(processor, "last_spoken_at", 0)) < getattr(processor, "speech_cooldown", 0):
+    # # Ignore input while TTS is actively running or during short cooldown
+    # if processor.is_speaking or (time.time() - getattr(processor, "last_spoken_at", 0)) < getattr(processor, "speech_cooldown", 0):
+    #     return
+    if processor.is_speaking or time.time() - processor.last_spoken_at < processor.speech_cooldown:
         return
+
 
     text = recognizer.process(bytes(indata))
     if not text:
@@ -35,6 +38,7 @@ def callback(indata, frames, time_info, status):
 
     if processor.should_exit():
         exit_event.set()
+
 
 # ---------- ENTRYPOINT ----------
 startup_text = get_message(recognizer.current_language, "startup", "text")

@@ -48,6 +48,14 @@ MESSAGES = {
             "text": "❎ Таймер отключения отменён.",
             "voice": "Таймер отключения отменён."
         },
+        "shutdown_timer_confirm": {
+            "text": "Уверены, что хотите поставить таймер на {minutes} минут?",
+            "voice": "Уверены, что хотите поставить таймер на {minutes} минут?"
+        },
+        "shutdown_timer_started": {
+            "text": "⏱ Таймер отключения на {minutes} минут запущен. Отчёт пошёл.",
+            "voice": "Таймер отключения на {minutes} минут запущен. Отчёт пошёл."
+        },
     },
 
     "en": {
@@ -98,6 +106,14 @@ MESSAGES = {
         "shutdown_timer_cancelled": {
             "text": "❎ Shutdown timer cancelled.",
             "voice": "Shutdown timer cancelled."
+        },
+        "shutdown_timer_confirm": {
+            "text": "Are you sure you want to set the timer for {minutes} minutes?",
+            "voice": "Are you sure you want to set the timer for {minutes} minutes?"
+        },
+        "shutdown_timer_started": {
+            "text": "⏱ Shutdown timer for {minutes} minutes has started.",
+            "voice": "Shutdown timer for {minutes} minutes has started."
         },
     }
 }

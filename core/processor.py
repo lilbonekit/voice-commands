@@ -1,3 +1,4 @@
+from email.mime import text
 import threading
 import time
 
@@ -7,6 +8,8 @@ from core.languages import detect_language_from_text, choose_language
 from core.intents import detect_intent
 from core.time import parse_minutes
 
+DEFAULT_SPEECH_COOLDOWN = 1.2
+TTS_CHARS_PER_SECOND = 12.0
 
 class VoiceProcessor:
     def __init__(self, recognizer, actions, speak, get_message):
@@ -23,7 +26,7 @@ class VoiceProcessor:
         # ---------- SPEECH CONTROL ----------
         self.is_speaking = False
         self.last_spoken_at = 0.0
-        self.speech_cooldown = 1.2
+        self.speech_cooldown = DEFAULT_SPEECH_COOLDOWN
 
         # ---------- SHUTDOWN TIMER ----------
         self.shutdown_timer_waiting_minutes = False
@@ -31,24 +34,34 @@ class VoiceProcessor:
         self.pending_shutdown_minutes: int | None = None
         self.shutdown_timer: threading.Timer | None = None
 
-    # ---------- PUBLIC API ----------
+    def _apply_dynamic_cooldown(self, spoken_text: str):
+        char_count = len(spoken_text)
+        estimated_seconds = char_count / TTS_CHARS_PER_SECOND
+        self.speech_cooldown = max(DEFAULT_SPEECH_COOLDOWN, estimated_seconds)
 
+    # ---------- PUBLIC API ----------
     def should_exit(self) -> bool:
         return self.exit_requested
 
     # ---------- INTERNAL HELPERS ----------
-
     def cancel_shutdown_timer(self):
         if self.shutdown_timer:
             self.shutdown_timer.cancel()
             self.shutdown_timer = None
 
-    def say_text(self, text: str):
+    def say_dynamic(self, key: str, **kwargs):
+        text_tpl = self.get_message(self.recognizer.current_language, key, "text")
+        voice_tpl = self.get_message(self.recognizer.current_language, key, "voice")
+
+        text = text_tpl.format(**kwargs)
+        voice = voice_tpl.format(**kwargs)
+
         print(text)
         self.is_speaking = True
         try:
-            self.speak(text, self.recognizer.current_language)
+            self.speak(voice, self.recognizer.current_language)
         finally:
+            self._apply_dynamic_cooldown(voice)
             self.last_spoken_at = time.time()
             self.is_speaking = False
 
@@ -62,11 +75,11 @@ class VoiceProcessor:
         try:
             self.speak(voice, self.recognizer.current_language)
         finally:
+            self._apply_dynamic_cooldown(voice)
             self.last_spoken_at = time.time()
             self.is_speaking = False
 
     # ---------- MAIN LOGIC ----------
-
     def process_text(self, text: str):
         print(f"➡️ recognized: '{text}'")
 
@@ -79,7 +92,6 @@ class VoiceProcessor:
         print(f"🔍 Detected intent: {intent}")
 
         # ---------- BASIC INTENTS ----------
-
         if intent == "greeting":
             self.say("greeting")
             return
@@ -105,7 +117,6 @@ class VoiceProcessor:
             return
 
         # ---------- EXIT FLOW ----------
-
         if intent == "exit":
             self.say("exit_ask")
             self.exit_confirmation = True
@@ -123,7 +134,6 @@ class VoiceProcessor:
                 return
 
         # ---------- IMMEDIATE SHUTDOWN ----------
-
         if intent == "shutdown_computer":
             self.say("shutdown_ask")
             self.shutdown_confirmation = True
@@ -142,7 +152,6 @@ class VoiceProcessor:
                 return
 
         # ---------- SHUTDOWN TIMER FLOW ----------
-
         if intent == "shutdown_timer":
             self.pending_shutdown_minutes = None
             self.shutdown_timer_waiting_minutes = True
@@ -161,10 +170,11 @@ class VoiceProcessor:
             self.shutdown_timer_waiting_minutes = False
             self.shutdown_timer_confirmation = True
 
-            self.say_text(
-                f"Уверены, что хотите поставить таймер на {minutes} минут?"
+            self.say_dynamic(
+               "shutdown_timer_confirm",
+                minutes=minutes
             )
-            return
+            return        
 
         if self.shutdown_timer_confirmation:
             if intent == "confirm_yes":
@@ -182,8 +192,9 @@ class VoiceProcessor:
                 self.pending_shutdown_minutes = None
                 self.shutdown_timer_confirmation = False
 
-                self.say_text(
-                    f"Таймер на {minutes} минут запущен. Отчёт пошёл."
+                self.say_dynamic(
+                    "shutdown_timer_started",
+                    minutes=minutes
                 )
                 return
 
@@ -194,7 +205,6 @@ class VoiceProcessor:
                 return
 
         # ---------- COMMANDS ----------
-
         for action, cfg in COMMANDS[self.recognizer.current_language].items():
             for phrase in cfg["triggers"]:
                 if phrase in text:
@@ -206,3 +216,5 @@ class VoiceProcessor:
                         self.last_spoken_at = time.time()
                         self.is_speaking = False
                     return
+
+    

@@ -1,192 +1,104 @@
-# 🎙 Voice Command Control Server (Local, Offline)
+# 🎙 Voice Command Control (Local, Offline)
 
-A local, offline voice command system built with **Python + Vosk**.
-It listens to your microphone, recognizes speech in real time, and executes system or custom commands.
+Lightweight local voice-command system using Python + Vosk.
+It listens to your microphone, recognizes speech offline and runs configured actions.
 
 No cloud. No accounts. Full local control.
 
----
-
-## ✨ Features
-
-- 🎤 Real-time microphone input
-- 🧠 Offline speech recognition (Vosk)
-- ⚡ Low latency, low CPU usage
-- 🖥 Execute local system commands
+**This README is a practical quick-start — see the code for extensibility.**
 
 ---
 
-## 🧱 Architecture Overview
+**Quick summary**
 
-```
-Microphone
-   ↓
-sounddevice (RawInputStream)
-   ↓
-Vosk (speech-to-text)
-   ↓
-Text → Command Logic
-   ↓
-System / RPC / Smart Home actions
-```
+- Entry point: `main.py` (not `listen.py`)
+- Offline recognition: Vosk models located under `models/` (per-language)
+- Language switching: supported (configurable phrases in `config/languages.py`)
+- TTS and a short cooldown are used to avoid recognizing the assistant's own speech
 
 ---
 
-## 🖥 Requirements
+**Requirements (macOS tested)**
 
-### Operating System
+- Python 3.10+ (use virtualenv)
+- `portaudio` (install via Homebrew)
 
-- macOS (tested)
-- Linux (should work)
-- Windows (possible, not tested)
-
-### System dependencies (via Homebrew)
-
-Make sure you have **Homebrew** installed:
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-
-Install required system packages:
+Install system deps:
 
 ```bash
 brew install python portaudio
 ```
 
----
-
-## 🐍 Python Environment Setup
-
-### 1️⃣ Create virtual environment
+Python env:
 
 ```bash
 python3 -m venv .venv
-```
-
-### 2️⃣ Activate it
-
-```bash
 source .venv/bin/activate
-```
-
-### 3️⃣ Install Python dependencies
-
-```bash
 pip install -r requirements.txt
 ```
 
-> ⚠️ Important:
-> Do **NOT** install packages globally.
-> Use a virtual environment to avoid Homebrew / system conflicts.
-
 ---
 
-## 🧠 Vosk Model Setup
+**Vosk models**
+Place models under `models/<lang>/...` and point `config/languages.py` to the model path. Example project already includes `models/ru/...` and `models/en/...` directories.
 
-Download a Vosk model (example: Russian small model):
+Download example model (if needed):
 
 ```bash
 wget https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip
-unzip vosk-model-small-ru-0.22.zip
-```
-
-Project structure should look like:
-
-```
-project/
-├── listen.py
-├── vosk-model-small-ru-0.22/
-│   ├── am/
-│   ├── conf/
-│   ├── graph/
-│   └── ivector/
+unzip vosk-model-small-ru-0.22.zip -d models/ru
 ```
 
 ---
 
-## ▶️ Running the Project
-
-Activate virtual environment:
+**Run**
 
 ```bash
 source .venv/bin/activate
+python main.py
 ```
 
-Run:
-
-```bash
-python listen.py
-```
-
-You should see:
-
-```
-🎤 Speak, I am listening...
-```
+You should see a startup message and then live `➡️ recognized: '...'` lines as the recognizer produces text.
 
 ---
 
-## 🗣 Example Voice Commands
+**Language switching**
 
-- **"start"** → custom action
-- **"stop"** → custom action
-- **"exit"** → gracefully shutdown program
-- **"a nu eb\*at let's learn English"** → opens YouTube in Chrome (example)
+- Phrases that trigger a language switch live in `config/languages.py` under `switch_phrases` for each language.
+- The app matches recognized text against those phrases and attempts to infer the target language. If automatic detection fails, an interactive `choose_language()` prompt will appear in the console.
 
-Commands are fully customizable in code.
+To add/change phrases, edit `config/languages.py`.
 
 ---
 
-## 🔧 Configuration
+**TTS & echo protection**
 
-Key constants in `listen.py`:
-
-```python
-SAMPLE_RATE = 16000
-BLOCK_SIZE = 8000
-```
-
-- Lower `BLOCK_SIZE` → lower latency, more CPU
-- Higher `BLOCK_SIZE` → higher latency, less CPU
+- The app uses a short TTS cooldown after speaking to avoid the microphone picking up assistant speech and retriggering commands.
+- If you still get echo-trigger loops, increase `speech_cooldown` in `core/processor.py`.
 
 ---
 
-## 🧩 Extending the System
+**Configuration & Commands**
 
-This project is designed to scale:
-
-- 🔗 RPC server (HTTP / WebSocket)
-- 🏠 Smart Home via MQTT
-- 🧠 Intent parsing
-- 🎛 State machine
-- 🗣 Text-to-speech responses
+- Commands are defined in `config/commands.py` and actions in `core/actions.py`.
+- Intents live in `config/intents.py` and matching is implemented in `core/intents.py`.
 
 ---
 
-## ⚠️ Notes
+**Troubleshooting**
 
-- The microphone callback runs in a **native audio thread**
-- Avoid heavy logic inside the callback
-- Always use `RawInputStream` for minimal latency
-- Restart the process after changing callback logic
-
----
-
-## 🧠 Why Python?
-
-Python excels at:
-
-- Native audio integration
-- Machine learning libraries
-- Rapid prototyping
-- Glue code between systems
-
-This project uses Python as a **control layer**, not a web framework.
+- If you see Python exceptions from the audio callback, restart the process and verify your virtualenv and `sounddevice`/`portaudio` are installed correctly.
+- If language switching doesn't work, check the recognized text printed to console (lines prefixed with `➡️ recognized:`) and update `switch_phrases` or keywords in `config/languages.py`.
+- If TTS is being recognized as speech, increase `speech_cooldown` in `core/processor.py` or route TTS to a separate audio device.
 
 ---
 
-## 📜 License
+**Development notes**
 
-MIT — do whatever you want.
-Hack responsibly.
+- The microphone callback runs in a native audio thread — keep it minimal and non-blocking.
+- Use `main.py`'s `sd.RawInputStream` settings (`SAMPLE_RATE` and `BLOCK_SIZE`) to tune latency vs CPU.
+
+---
+
+**License**
+MIT — do whatever you want. Hack responsibly.

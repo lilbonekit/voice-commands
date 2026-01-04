@@ -1,109 +1,41 @@
 import threading
-from time import sleep
+import time
 import sounddevice as sd
 
+from core.processor import VoiceProcessor
 from core.recognizer import VoiceRecognizer
-from core.intents import detect_intent
 from core.messages import get_message
 from core.tts import speak
-from config.commands import COMMANDS
 from core.actions import AVAILABLE_ACTIONS
 
 SAMPLE_RATE = 16000
 BLOCK_SIZE = 8000
 
 exit_event = threading.Event()
-exit_confirmation = False
-
-shutdown_confirmation = False
 
 recognizer = VoiceRecognizer(SAMPLE_RATE)
 
-def say(key: str):
-    """
-    Helper: print + speak message correctly
-    """
-    text = get_message(recognizer.current_language, key, "text")
-    voice = get_message(recognizer.current_language, key, "voice")
-    print(text)
-    speak(voice, recognizer.current_language)
+processor = VoiceProcessor(
+    recognizer=recognizer,
+    actions=AVAILABLE_ACTIONS,
+    speak=speak,
+    get_message=get_message,
+)
 
-
-def callback(indata, frames, time, status):
-    global exit_confirmation
-    global shutdown_confirmation
-
-    if status:
-        print("⚠️", status)
+def callback(indata, frames, time_info, status):
+    # Ignore input while TTS is actively running or during short cooldown
+    if processor.is_speaking or (time.time() - getattr(processor, "last_spoken_at", 0)) < getattr(processor, "speech_cooldown", 0):
+        return
 
     text = recognizer.process(bytes(indata))
     if not text:
         return
 
-    print("➡️", text)
+    processor.process_text(text)
 
-    # ---------- INTENTS (system / dialog) ----------
-    intent = detect_intent(text, recognizer.current_language)
+    if processor.should_exit():
+        exit_event.set()
 
-    if intent == "greeting":
-        say("greeting")
-        return
-
-    if intent == "switch_language":
-        if recognizer.current_language == "ru":
-            recognizer.switch_language("en")
-        else:
-            recognizer.switch_language("ru")
-
-        say("startup")
-        return
-
-    if intent == "exit":
-        say("exit_ask")
-        exit_confirmation = True
-        return
-
-    if exit_confirmation:
-        if intent == "confirm_yes":
-            say("exit_confirmed")
-            exit_event.set()
-            return
-
-        if intent == "confirm_no":
-            say("exit_cancelled")
-            exit_confirmation = False
-            return
-    
-    # --- shutdown intent ---
-    if intent == "shutdown_computer":
-        say("shutdown_ask")
-        shutdown_confirmation = True
-        return
-
-    # --- confirmation ---
-    if shutdown_confirmation:
-        if intent == "confirm_yes":
-            say("shutdown_confirmed")
-            sleep(1_000)  # wait for TTS to finish
-            AVAILABLE_ACTIONS["shutdown_computer"]()
-            exit_event.set()
-            return
-
-        if intent == "confirm_no":
-            say("shutdown_cancelled")
-            shutdown_confirmation = False
-            return
-
-    # ---------- COMMANDS (actions) ----------
-    lang_cmds = COMMANDS.get(recognizer.current_language, {})
-
-    for action_name, cfg in lang_cmds.items():
-        for phrase in cfg["triggers"]:
-            if phrase in text:
-               print(cfg["text"])
-               speak(cfg["voice"], recognizer.current_language)
-               AVAILABLE_ACTIONS[action_name]()
-               return
 
 
 # ---------- ENTRYPOINT ----------
@@ -125,7 +57,7 @@ try:
         callback=callback,
     ):
         while not exit_event.is_set():
-            sd.sleep(100)
+            sd.sleep(2_000) # sleep for TTS speaking and processing
 except KeyboardInterrupt:
     print("\n🛑 Interrupted by user")
 finally:

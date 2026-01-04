@@ -19,6 +19,16 @@ COMMANDS = {
                 "запусти человека паука",
             ],
         },
+        "open_supernatural": {
+            "text": "📺 Включаю сериал «Сверхъестественное»",
+            "voice": "Включаю сериал Сверхъестественное",
+            "triggers": [
+                "включи сверхъестественное",
+                "включи сериал сверхъестественное",
+                "запусти сверхъестественное",
+                "хочу посмотреть сверхъестественное",
+            ],
+        },
     },
     "en": {
         "open_english": {
@@ -34,9 +44,20 @@ COMMANDS = {
             "text": "🕷️ Opening Spider-Man",
             "voice": "Opening Spider Man",
             "triggers": [
-                "play spider man",
-                "open spider man",
-                "start spider man",
+                "play spiderman",
+                "play spiderman",
+                "open spiderman",
+                "start spiderman",
+                "start spiderman",
+            ],
+        },
+        "open_supernatural": {
+            "text": "📺 Opening Supernatural series",
+            "voice": "Opening Supernatural series",
+            "triggers": [
+                "open supernatural",
+                "play supernatural",
+                "start supernatural series",
             ],
         },
     },

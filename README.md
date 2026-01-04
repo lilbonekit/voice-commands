@@ -73,7 +73,7 @@ source .venv/bin/activate
 ### 3️⃣ Install Python dependencies
 
 ```bash
-pip install vosk sounddevice
+pip install -r requirements.txt
 ```
 
 > ⚠️ Important:

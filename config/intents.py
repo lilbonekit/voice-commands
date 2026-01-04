@@ -5,7 +5,7 @@ INTENTS = {
     },
     "exit": {
         "ru": ["выход", "заверши работу", "закрывайся", "стоп"],
-        "en": ["exit", "quit", "shutdown"]
+        "en": ["exit", "quit", "shutdown", "stop"]
     },
     "confirm_yes": {
         "ru": ["да", "подтверждаю", "выходи"],
